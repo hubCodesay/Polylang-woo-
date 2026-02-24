@@ -4,7 +4,7 @@ Tags: polylang, woocommerce, multilingual, translation, language switcher
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.2.1
+Stable tag: 1.2.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -54,6 +54,9 @@ Also make sure translated Shop page is linked in Polylang.
 Yes. Go to `Settings > General` and disable **Header language switcher**.
 
 == Changelog ==
+
+= 1.2.2 =
+- Added WooCommerce feature compatibility declarations (HPOS/custom order tables and cart/checkout blocks) to remove incompatibility warning in Woo admin.
 
 = 1.2.1 =
 - Fixed WooCommerce catalog language filtering: shop/archive/category/tag/shortcode product queries now respect current Polylang language.

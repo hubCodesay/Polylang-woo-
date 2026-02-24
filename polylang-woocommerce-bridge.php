@@ -3,7 +3,7 @@
  * Plugin Name: Polylang WooCommerce Bridge
  * Plugin URI:  https://github.com/hubCodesay/Polylang-woo-
  * Description: Integrates Polylang with WooCommerce: products, categories, tags, attributes translations, WooCommerce page mapping by language, and optional header language switcher.
- * Version:     1.2.1
+ * Version:     1.2.2
  * Author:      hubCodesay
  * Author URI:  https://github.com/hubCodesay
  * License:     GPL-2.0-or-later
@@ -19,7 +19,7 @@
 defined( 'ABSPATH' ) || exit;
 
 final class Polylang_WooCommerce_Bridge {
-	const VERSION                        = '1.2.1';
+	const VERSION                        = '1.2.2';
 	const OPTION_VERSION                 = 'plwc_bridge_version';
 	const OPTION_NEEDS_FLUSH             = 'plwc_bridge_needs_rewrite_flush';
 	const OPTION_SWITCHER_ENABLED        = 'plwc_bridge_switcher_enabled';
@@ -35,8 +35,23 @@ final class Polylang_WooCommerce_Bridge {
 		register_activation_hook( __FILE__, array( __CLASS__, 'activate' ) );
 		register_deactivation_hook( __FILE__, array( __CLASS__, 'deactivate' ) );
 
+		add_action( 'before_woocommerce_init', array( __CLASS__, 'declare_woocommerce_compatibility' ) );
 		add_action( 'plugins_loaded', array( __CLASS__, 'load_textdomain' ) );
 		add_action( 'plugins_loaded', array( __CLASS__, 'register' ) );
+	}
+
+	/**
+	 * Declare compatibility with WooCommerce optional features.
+	 *
+	 * @return void
+	 */
+	public static function declare_woocommerce_compatibility() {
+		if ( ! class_exists( '\\Automattic\\WooCommerce\\Utilities\\FeaturesUtil' ) ) {
+			return;
+		}
+
+		\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+		\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'cart_checkout_blocks', __FILE__, true );
 	}
 
 	/**
