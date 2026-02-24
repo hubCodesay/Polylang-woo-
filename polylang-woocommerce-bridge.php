@@ -3,7 +3,7 @@
  * Plugin Name: Polylang WooCommerce Bridge
  * Plugin URI:  https://github.com/hubCodesay/Polylang-woo-
  * Description: Integrates Polylang with WooCommerce: products, categories, tags, attributes translations, WooCommerce page mapping by language, and optional header language switcher.
- * Version:     1.2.0
+ * Version:     1.2.1
  * Author:      hubCodesay
  * Author URI:  https://github.com/hubCodesay
  * License:     GPL-2.0-or-later
@@ -19,7 +19,7 @@
 defined( 'ABSPATH' ) || exit;
 
 final class Polylang_WooCommerce_Bridge {
-	const VERSION                        = '1.2.0';
+	const VERSION                        = '1.2.1';
 	const OPTION_VERSION                 = 'plwc_bridge_version';
 	const OPTION_NEEDS_FLUSH             = 'plwc_bridge_needs_rewrite_flush';
 	const OPTION_SWITCHER_ENABLED        = 'plwc_bridge_switcher_enabled';
@@ -94,6 +94,8 @@ final class Polylang_WooCommerce_Bridge {
 		add_filter( 'woocommerce_get_checkout_page_id', array( __CLASS__, 'translate_woocommerce_page_id' ) );
 		add_filter( 'woocommerce_get_myaccount_page_id', array( __CLASS__, 'translate_woocommerce_page_id' ) );
 		add_filter( 'woocommerce_get_terms_page_id', array( __CLASS__, 'translate_woocommerce_page_id' ) );
+		add_action( 'pre_get_posts', array( __CLASS__, 'filter_product_queries_by_language' ), 20 );
+		add_filter( 'woocommerce_shortcode_products_query', array( __CLASS__, 'filter_shortcode_products_query_by_language' ), 10, 3 );
 
 		if ( self::is_switcher_enabled() ) {
 			add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
@@ -349,6 +351,90 @@ final class Polylang_WooCommerce_Bridge {
 		$translated_id = pll_get_post( $page_id, $current_lang );
 
 		return ! empty( $translated_id ) ? (int) $translated_id : $page_id;
+	}
+
+	/**
+	 * Force current Polylang language in WooCommerce product loops.
+	 *
+	 * @param WP_Query $query Query instance.
+	 * @return void
+	 */
+	public static function filter_product_queries_by_language( $query ) {
+		if ( is_admin() || ! ( $query instanceof WP_Query ) ) {
+			return;
+		}
+
+		if ( $query->get( 'lang' ) ) {
+			return;
+		}
+
+		$is_product_query = false;
+		$post_type        = $query->get( 'post_type' );
+
+		if ( 'product' === $post_type ) {
+			$is_product_query = true;
+		}
+
+		if ( is_array( $post_type ) && in_array( 'product', $post_type, true ) ) {
+			$is_product_query = true;
+		}
+
+		if ( 'product_query' === $query->get( 'wc_query' ) ) {
+			$is_product_query = true;
+		}
+
+		if ( $query->is_post_type_archive( 'product' ) || $query->is_tax( array( 'product_cat', 'product_tag', 'product_shipping_class' ) ) ) {
+			$is_product_query = true;
+		}
+
+		if ( ! $is_product_query ) {
+			return;
+		}
+
+		$current_lang = self::get_current_language();
+
+		if ( '' !== $current_lang ) {
+			$query->set( 'lang', $current_lang );
+		}
+	}
+
+	/**
+	 * Force current language in WooCommerce product shortcodes.
+	 *
+	 * @param array $query_args Query args.
+	 * @param array $attributes Shortcode attributes.
+	 * @param string $type Shortcode type.
+	 * @return array
+	 */
+	public static function filter_shortcode_products_query_by_language( $query_args, $attributes, $type ) {
+		unset( $attributes, $type );
+
+		if ( ! empty( $query_args['lang'] ) ) {
+			return $query_args;
+		}
+
+		$current_lang = self::get_current_language();
+
+		if ( '' !== $current_lang ) {
+			$query_args['lang'] = $current_lang;
+		}
+
+		return $query_args;
+	}
+
+	/**
+	 * Get current Polylang language slug.
+	 *
+	 * @return string
+	 */
+	private static function get_current_language() {
+		if ( ! function_exists( 'pll_current_language' ) ) {
+			return '';
+		}
+
+		$lang = pll_current_language( 'slug' );
+
+		return is_string( $lang ) ? $lang : '';
 	}
 
 	/**
